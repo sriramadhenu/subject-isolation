@@ -1,3 +1,4 @@
 /data
 /models/UNET/unet
 /models/UNET/VOC2012
+/frontend/__pycache__
