@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, url_for
 from PIL import Image
 import numpy as np
 import torch
-from Unet import VOCTransforms
+from modelCode.Unet import VOCTransforms
 from runModel import predict_and_visualize
 app = Flask(__name__)
 
