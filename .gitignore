@@ -2,3 +2,4 @@
 /models/UNET/unet
 /models/UNET/VOC2012
 /frontend/__pycache__
+/frontend/modelCode/__pycache__
