@@ -12,6 +12,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from modelCode.Unet import UNET
+from modelCode.Fcn import FCN
+from PIL import ImageOps
 
 def predict_and_visualize(model_name, image_path, device, transforms_func, num_classes):
     
@@ -19,11 +21,15 @@ def predict_and_visualize(model_name, image_path, device, transforms_func, num_c
         model = UNET(n_channels=3, n_classes=num_classes)
         model.load_state_dict(torch.load('../models/UNET/unet_voc_final.pth', map_location=device))
         model.to(device)
+    elif model_name == "FCN":
+        model = FCN(n_classes=num_classes).to(device)
+        model.load_state_dict(torch.load('../models/FCN/fcn_voc_final.pth', map_location=device))
+        model.to(device)
     else:
         raise ValueError(f"Model '{model_name}' is not supported.")
     model.eval()
    
-    image = Image.open(image_path).convert("RGB")
+    image = ImageOps.exif_transpose(Image.open(image_path)).convert("RGB")
     original_size = image.size[::-1] # H, W
 
     # Use only the image transform part for prediction
@@ -55,22 +61,37 @@ def predict_and_visualize(model_name, image_path, device, transforms_func, num_c
     # Resize mask to match original image size
     colored_mask_resized = Image.fromarray(colored_mask.astype(np.uint8)).resize(original_size)
     colored_mask = np.array(colored_mask_resized)
+       # Overlay the mask onto the original image
+    overlay_image = image.resize(original_size)
+    mask_rgba = Image.fromarray(colored_mask.astype(np.uint8)).convert("RGBA")
+    overlay_image_rgba = overlay_image.convert("RGBA")
+
+    # Blend with transparency
+    blended = Image.blend(overlay_image_rgba, mask_rgba, alpha=0.5)
+
     # Display
-    plt.figure(figsize=(12, 6))
-    plt.subplot(1, 2, 1)
+    plt.figure(figsize=(18, 6))
+
+    plt.subplot(1, 3, 1)
     plt.title("Original Image")
     plt.imshow(np.array(image))
-    plt.axis('image')
     plt.axis('off')
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.title("Predicted Mask")
     plt.imshow(colored_mask.astype(np.uint8))
-    plt.axis('image')
+    plt.axis('off')
+
+    plt.subplot(1, 3, 3)
+    plt.title("Overlay")
+    plt.imshow(np.array(blended))
     plt.axis('off')
 
     plt.tight_layout()
     os.makedirs('static', exist_ok=True)
-    plt.savefig("static/prediction_output.png")  # Save to static folder
+    plt.savefig("static/prediction_output.png")
     plt.close()
+
+
+
 

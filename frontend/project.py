@@ -24,7 +24,7 @@ def home():
         transforms_func = voc_transforms = VOCTransforms(IMG_SIZE)
         print(f"Using device: {device}")
         predict_and_visualize(selected_model, image, device, transforms_func, num_classes)
-        return render_template('index.html', prediction_url=url_for('static', filename='prediction_output.png'))
+        return render_template('index.html', prediction_url=url_for('static', filename='prediction_output.png'), disabled="disabled")
 
 if __name__ == '__main__':
     app.run()
