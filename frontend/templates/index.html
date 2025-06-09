@@ -1,0 +1,23 @@
+<h3>Upload an image</h3>
+
+<form action="#" method="post" enctype="multipart/form-data">
+    <input type="file" name="file">
+    
+    <br/>
+   <select id="models" name="Model">
+    <option value="" disabled selected>Select Model</option>
+    <option value="FCN">FCN</option>
+    <option value="K-Means">K-Means</option>
+    <option value="UNET">UNET</option>
+    </select>
+    <br/>
+    <input type="submit" value="Upload">
+</form>
+{% if prediction_url %}
+    <h4>Prediction Result:</h4>
+    <img src="{{ prediction_url }}" alt="Predicted Mask" style="max-width: 600px;">
+    <br><br>
+    <form method="get" action="/">
+        <button type="submit">Start Over</button>
+    </form>
+{% endif %}
