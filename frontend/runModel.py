@@ -14,6 +14,10 @@ import matplotlib.pyplot as plt
 from modelCode.Unet import UNET
 from modelCode.Fcn import FCN
 from PIL import ImageOps
+from sklearn.metrics import silhouette_score
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import MinMaxScaler
+from torchvision.transforms import PILToTensor, ToTensor
 
 def predict_and_visualize(model_name, image_path, device, transforms_func, num_classes):
     
@@ -25,6 +29,9 @@ def predict_and_visualize(model_name, image_path, device, transforms_func, num_c
         model = FCN(n_classes=num_classes).to(device)
         model.load_state_dict(torch.load('../models/FCN/fcn_voc_final.pth', map_location=device))
         model.to(device)
+    elif model_name=="K-Means":
+        predict_kmeans_mask(image_path)
+        return
     else:
         raise ValueError(f"Model '{model_name}' is not supported.")
     model.eval()
@@ -93,5 +100,71 @@ def predict_and_visualize(model_name, image_path, device, transforms_func, num_c
     plt.close()
 
 
+def predict_kmeans_mask(image_path):
+    performance_size = (256, 256)
+    image = Image.open(image_path).convert("RGB")
+    image.thumbnail(performance_size, Image.Resampling.LANCZOS)
+    image_tensor = ToTensor()(image)
+    image_perumated = image_tensor.permute(1, 2, 0)
+    image_reshaped = image_perumated.reshape(-1, 3)
+    image_pixels = np.float32(image_reshaped)
+    
+    scaler = MinMaxScaler()
+    pixel_scaled = scaler.fit_transform(image_pixels)
+    
 
+    sample_size = min(50000, len(pixel_scaled))
+    indices = np.random.choice(len(pixel_scaled), sample_size, replace=False)
+    pixel_sample = pixel_scaled[indices]
+    
+    silhouette_scores = []
+    k_range = range(2, 7)
+    for k_test in k_range:
+        test = KMeans(n_clusters=k_test, random_state=0, n_init=10)
+        labels_test = test.fit_predict(pixel_sample)
+        score = silhouette_score(pixel_sample, labels_test)
+        silhouette_scores.append(score)
+    
+    k = k_range[np.argmax(silhouette_scores)]
+    
+    final_kmeans = KMeans(n_clusters=k, random_state=0, n_init=10)
+    labels = final_kmeans.fit_predict(image_pixels)
+    cluster_centers = final_kmeans.cluster_centers_
+    
+    h, w = image_perumated.shape[:2]
+    segmented_mask = labels.reshape(h, w)
+    
+    np.random.seed(42)
+    colormap = np.random.randint(0, 256, size=(k, 3), dtype=np.uint8)
+    colored_mask = colormap[segmented_mask]
 
+    original_image_pil = Image.fromarray((image_perumated.numpy() * 255).astype(np.uint8))
+    colored_mask_pil = Image.fromarray(colored_mask)
+
+    overlay_image_rgba = original_image_pil.convert("RGBA")
+    mask_rgba = colored_mask_pil.convert("RGBA")
+
+    blended = Image.blend(overlay_image_rgba, mask_rgba, alpha=0.5)
+
+    plt.figure(figsize=(18, 6))
+
+    plt.subplot(1, 3, 1)
+    plt.title("Original Image")
+    plt.imshow(original_image_pil)
+    plt.axis('off')
+
+    plt.subplot(1, 3, 2)
+    plt.title(f"Predicted Mask (k={k})")
+    plt.imshow(colored_mask_pil)
+    plt.axis('off')
+
+    plt.subplot(1, 3, 3)
+    plt.title("Overlay")
+    plt.imshow(blended)
+    plt.axis('off')
+
+    plt.tight_layout()
+    os.makedirs('static', exist_ok=True)
+    plt.savefig("static/prediction_output.png")
+    plt.close()
+#predict_and_visualize("K-Means", "point.jpg", "b", "c", "d")
