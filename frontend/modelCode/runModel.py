@@ -11,8 +11,8 @@ import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from modelCode.Unet import UNET
-from modelCode.Fcn import FCN
+from .Unet import UNET
+from .Fcn import FCN
 from PIL import ImageOps
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans

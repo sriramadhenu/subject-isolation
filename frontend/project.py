@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 import torch
 from modelCode.Unet import VOCTransforms
-from runModel import predict_and_visualize
+from modelCode.runModel import predict_and_visualize
 app = Flask(__name__)
 
 @app.route('/', methods=['GET', 'POST'])
